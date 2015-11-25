@@ -18,10 +18,10 @@
 #pragma once
 
 #define MAX_PWM_MOTORS  12
-#define MAX_PWM_SERVOS  10
+#define MAX_PWM_SERVOS  8
 
 #define MAX_MOTORS  12
-#define MAX_SERVOS  10
+#define MAX_SERVOS  8
 #define MAX_PWM_OUTPUT_PORTS MAX_PWM_MOTORS // must be set to the largest of either MAX_MOTORS or MAX_SERVOS
 
 #if MAX_PWM_OUTPUT_PORTS < MAX_MOTORS || MAX_PWM_OUTPUT_PORTS < MAX_SERVOS
@@ -35,6 +35,8 @@
 
 #define PWM_TIMER_MHZ 1
 #define ONESHOT125_TIMER_MHZ 8
+#define PWM_BRUSHED_TIMER_MHZ 8
+
 
 typedef struct sonarGPIOConfig_s {
     GPIO_TypeDef *gpio;
@@ -63,7 +65,7 @@ typedef struct drv_pwm_config_t {
 #endif
 #ifdef USE_SERVOS
     bool useServos;
-    bool extraServos;    // configure additional 4 channels in PPM mode as servos, not motors
+    bool useChannelForwarding;    // configure additional channels as servos
     uint16_t servoPwmRate;
     uint16_t servoCenterPulse;
 #endif

@@ -27,7 +27,7 @@ OPBL ?=no
 DEBUG ?=
 
 # Serial port/Device for flashing
-SERIAL_DEVICE	?= /dev/ttyUSB0
+SERIAL_DEVICE	?= $(firstword $(wildcard /dev/ttyUSB*) no-port-found)
 
 # Flash size (KB).  Some low-end chips actually have more flash than advertised, use this to override.
 FLASH_SIZE ?=
@@ -38,7 +38,7 @@ FLASH_SIZE ?=
 
 FORKNAME			 = cleanflight
 
-VALID_TARGETS	 = NAZE NAZE32PRO OLIMEXINO STM32F3DISCOVERY CHEBUZZF3 CC3D CJMCU EUSTM32F103RC SPRACINGF3 PORT103R SPARKY ALIENWIIF1 ALIENWIIF3
+VALID_TARGETS	 = NAZE NAZE32PRO OLIMEXINO STM32F3DISCOVERY CHEBUZZF3 CC3D CJMCU EUSTM32F103RC SPRACINGF3 PORT103R SPARKY ALIENWIIF1 ALIENWIIF3 COLIBRI_RACE
 
 # Valid targets for OP BootLoader support
 OPBL_VALID_TARGETS = CC3D
@@ -47,9 +47,9 @@ OPBL_VALID_TARGETS = CC3D
 ifeq ($(FLASH_SIZE),)
 ifeq ($(TARGET),$(filter $(TARGET),CJMCU))
 FLASH_SIZE = 64
-else ifeq ($(TARGET),$(filter $(TARGET),NAZE CC3D ALIENWIIF1 SPRACINGF3 OLIMEXINO))
+else ifeq ($(TARGET),$(filter $(TARGET),NAZE CC3D ALIENWIIF1 OLIMEXINO))
 FLASH_SIZE = 128
-else ifeq ($(TARGET),$(filter $(TARGET),EUSTM32F103RC PORT103R STM32F3DISCOVERY CHEBUZZF3 NAZE32PRO SPARKY ALIENWIIF3))
+else ifeq ($(TARGET),$(filter $(TARGET),EUSTM32F103RC PORT103R STM32F3DISCOVERY CHEBUZZF3 NAZE32PRO SPRACINGF3 SPARKY ALIENWIIF3 COLIBRI_RACE))
 FLASH_SIZE = 256
 else
 $(error FLASH_SIZE not configured for target)
@@ -72,7 +72,9 @@ VPATH		:= $(SRC_DIR):$(SRC_DIR)/startup
 USBFS_DIR	= $(ROOT)/lib/main/STM32_USB-FS-Device_Driver
 USBPERIPH_SRC = $(notdir $(wildcard $(USBFS_DIR)/src/*.c))
 
-ifeq ($(TARGET),$(filter $(TARGET),STM32F3DISCOVERY CHEBUZZF3 NAZE32PRO SPRACINGF3 SPARKY ALIENWIIF3))
+CSOURCES        := $(shell find $(SRC_DIR) -name '*.c')
+
+ifeq ($(TARGET),$(filter $(TARGET),STM32F3DISCOVERY CHEBUZZF3 NAZE32PRO SPRACINGF3 SPARKY ALIENWIIF3 COLIBRI_RACE))
 
 STDPERIPH_DIR	= $(ROOT)/lib/main/STM32F30x_StdPeriph_Driver
 
@@ -110,7 +112,7 @@ endif
 
 LD_SCRIPT	 = $(LINKER_DIR)/stm32_flash_f303_$(FLASH_SIZE)k.ld
 
-ARCH_FLAGS	 = -mthumb -mcpu=cortex-m4 -mfloat-abi=hard -mfpu=fpv4-sp-d16 -mfpu=fpv4-sp-d16 -fsingle-precision-constant -Wdouble-promotion
+ARCH_FLAGS	 = -mthumb -mcpu=cortex-m4 -mfloat-abi=hard -mfpu=fpv4-sp-d16 -fsingle-precision-constant -Wdouble-promotion
 DEVICE_FLAGS = -DSTM32F303xC -DSTM32F303
 TARGET_FLAGS = -D$(TARGET)
 ifeq ($(TARGET),CHEBUZZF3)
@@ -229,8 +231,9 @@ COMMON_SRC	 = build_config.c \
 		   flight/imu.c \
 		   flight/mixer.c \
 		   flight/lowpass.c \
+		   flight/filter.c \
 		   drivers/bus_i2c_soft.c \
-                   drivers/bus_spi_soft.c \
+           drivers/bus_spi_soft.c \
 		   drivers/serial.c \
 		   drivers/sound_beeper.c \
 		   drivers/system.c \
@@ -249,7 +252,7 @@ COMMON_SRC	 = build_config.c \
 		   rx/sumh.c \
 		   rx/spektrum.c \
 		   rx/xbus.c \
-                   rx/nRF24L01.c \
+           rx/nRF24L01.c \
 		   sensors/acceleration.c \
 		   sensors/battery.c \
 		   sensors/boardalignment.c \
@@ -302,6 +305,7 @@ NAZE_SRC	 = startup_stm32f10x_md_gcc.S \
 		   drivers/bus_i2c_stm32f10x.c \
 		   drivers/compass_hmc5883l.c \
 		   drivers/display_ug2864hsweg01.h \
+		   drivers/flash_m25p16.c \
 		   drivers/gpio_stm32f10x.c \
 		   drivers/inverter.c \
 		   drivers/light_led_stm32f10x.c \
@@ -318,7 +322,6 @@ NAZE_SRC	 = startup_stm32f10x_md_gcc.S \
 		   drivers/system_stm32f10x.c \
 		   drivers/timer.c \
 		   drivers/timer_stm32f10x.c \
-		   drivers/flash_m25p16.c \
 		   io/flashfs.c \
 		   hardware_revision.c \
 		   $(HIGHEND_SRC) \
@@ -344,6 +347,7 @@ EUSTM32F103RC_SRC	 = startup_stm32f10x_hd_gcc.S \
 		   drivers/compass_ak8975.c \
 		   drivers/compass_hmc5883l.c \
 		   drivers/display_ug2864hsweg01.c \
+		   drivers/flash_m25p16.c \
 		   drivers/gpio_stm32f10x.c \
 		   drivers/inverter.c \
 		   drivers/light_led_stm32f10x.c \
@@ -360,6 +364,7 @@ EUSTM32F103RC_SRC	 = startup_stm32f10x_hd_gcc.S \
 		   drivers/system_stm32f10x.c \
 		   drivers/timer.c \
 		   drivers/timer_stm32f10x.c \
+		   io/flashfs.c \
 		   $(HIGHEND_SRC) \
 		   $(COMMON_SRC)
 
@@ -435,6 +440,7 @@ CC3D_SRC	 = \
 		   drivers/bus_i2c_stm32f10x.c \
 		   drivers/compass_hmc5883l.c \
 		   drivers/display_ug2864hsweg01.c \
+		   drivers/flash_m25p16.c \
 		   drivers/gpio_stm32f10x.c \
 		   drivers/inverter.c \
 		   drivers/light_led_stm32f10x.c \
@@ -451,7 +457,6 @@ CC3D_SRC	 = \
 		   drivers/system_stm32f10x.c \
 		   drivers/timer.c \
 		   drivers/timer_stm32f10x.c \
-		   drivers/flash_m25p16.c \
 		   io/flashfs.c \
 		   $(HIGHEND_SRC) \
 		   $(COMMON_SRC) \
@@ -509,6 +514,18 @@ CHEBUZZF3_SRC	 = \
 		   $(HIGHEND_SRC) \
 		   $(COMMON_SRC)
 
+COLIBRI_RACE_SRC        = \
+		   $(STM32F30x_COMMON_SRC) \
+		   drivers/display_ug2864hsweg01.c \
+		   drivers/accgyro_spi_mpu6500.c \
+		   drivers/barometer_ms5611.c \
+		   drivers/compass_ak8975.c \
+		   drivers/compass_hmc5883l.c \
+		   drivers/serial_usb_vcp.c \
+		   $(HIGHEND_SRC) \
+		   $(COMMON_SRC) \
+		   $(VCP_SRC)
+
 SPARKY_SRC	 = \
 		   $(STM32F30x_COMMON_SRC) \
 		   drivers/display_ug2864hsweg01.c \
@@ -526,9 +543,11 @@ SPRACINGF3_SRC	 = \
 		   $(STM32F30x_COMMON_SRC) \
 		   drivers/accgyro_mpu6050.c \
 		   drivers/barometer_ms5611.c \
+		   drivers/compass_ak8975.c \
 		   drivers/compass_hmc5883l.c \
 		   drivers/display_ug2864hsweg01.h \
 		   drivers/flash_m25p16.c \
+		   drivers/serial_softserial.c \
 		   drivers/sonar_hcsr04.c \
 		   io/flashfs.c \
 		   $(HIGHEND_SRC) \
@@ -558,7 +577,7 @@ OPTIMIZE	 = -Os
 LTO_FLAGS	 = -flto -fuse-linker-plugin $(OPTIMIZE)
 endif
 
-DEBUG_FLAGS	 = -ggdb3
+DEBUG_FLAGS	 = -ggdb3 -DDEBUG
 
 CFLAGS		 = $(ARCH_FLAGS) \
 		   $(LTO_FLAGS) \
@@ -593,11 +612,17 @@ LDFLAGS		 = -lm \
 		   $(DEBUG_FLAGS) \
 		   -static \
 		   -Wl,-gc-sections,-Map,$(TARGET_MAP) \
+		   -Wl,-L$(LINKER_DIR) \
 		   -T$(LD_SCRIPT)
 
 ###############################################################################
 # No user-serviceable parts below
 ###############################################################################
+
+CPPCHECK         = cppcheck $(CSOURCES) --enable=all --platform=unix64 \
+		   --std=c99 --inline-suppr --quiet --force \
+		   $(addprefix -I,$(INCLUDE_DIRS)) \
+		   -I/usr/include -I/usr/include/linux
 
 #
 # Things we will build
@@ -643,16 +668,29 @@ $(OBJECT_DIR)/$(TARGET)/%.o: %.S
 	@echo %% $(notdir $<)
 	@$(CC) -c -o $@ $(ASFLAGS) $<
 
+
+## all         : default task; compile C code, build firmware
+all: binary
+
+## clean       : clean up all temporary / machine-generated files
 clean:
 	rm -f $(TARGET_BIN) $(TARGET_HEX) $(TARGET_ELF) $(TARGET_OBJS) $(TARGET_MAP)
 	rm -rf $(OBJECT_DIR)/$(TARGET)
+	cd src/test && $(MAKE) clean || true
 
 flash_$(TARGET): $(TARGET_HEX)
 	stty -F $(SERIAL_DEVICE) raw speed 115200 -crtscts cs8 -parenb -cstopb -ixon
 	echo -n 'R' >$(SERIAL_DEVICE)
 	stm32flash -w $(TARGET_HEX) -v -g 0x0 -b 115200 $(SERIAL_DEVICE)
 
+## flash       : flash firmware (.hex) onto flight controller
 flash: flash_$(TARGET)
+
+st-flash_$(TARGET): $(TARGET_BIN)
+	st-flash --reset write $< 0x08000000
+
+## st-flash    : flash firmware (.bin) onto flight controller
+st-flash: st-flash_$(TARGET)
 
 binary: $(TARGET_BIN)
 
@@ -660,9 +698,18 @@ unbrick_$(TARGET): $(TARGET_HEX)
 	stty -F $(SERIAL_DEVICE) raw speed 115200 -crtscts cs8 -parenb -cstopb -ixon
 	stm32flash -w $(TARGET_HEX) -v -g 0x0 -b 115200 $(SERIAL_DEVICE)
 
+## unbrick     : unbrick flight controller
 unbrick: unbrick_$(TARGET)
 
-help:
+## cppcheck    : run static analysis on C source code
+cppcheck: $(CSOURCES)
+	$(CPPCHECK)
+
+cppcheck-result.xml: $(CSOURCES)
+	$(CPPCHECK) --xml-version=2 2> cppcheck-result.xml
+
+## help        : print this help message and exit
+help: Makefile
 	@echo ""
 	@echo "Makefile for the $(FORKNAME) firmware"
 	@echo ""
@@ -671,6 +718,11 @@ help:
 	@echo ""
 	@echo "Valid TARGET values are: $(VALID_TARGETS)"
 	@echo ""
+	@sed -n 's/^## //p' $<
+
+## test        : run the cleanflight test suite
+test:
+	cd src/test && $(MAKE) test || true
 
 # rebuild everything when makefile changes
 $(TARGET_OBJS) : Makefile
