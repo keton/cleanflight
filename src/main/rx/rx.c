@@ -334,8 +334,8 @@ void updateRx(uint32_t currentTime)
 		rxDataReceived = rxNRF24ReceivePacket();
 		if (rxDataReceived) {
 
-			rxDataReceived = true;
-			needRxSignalBefore = currentTime + DELAY_10_HZ;
+			//rxDataReceived = true;
+			needRxSignalBefore = currentTime + DELAY_5_HZ;
 			
 			if (feature(FEATURE_FAILSAFE)) {
 				failsafeOnValidDataReceived();

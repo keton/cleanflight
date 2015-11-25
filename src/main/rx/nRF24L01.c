@@ -50,9 +50,8 @@ typedef struct nrf24Payload {
     uint8_t yaw;
     uint8_t pitch;
     uint8_t roll;
-    uint8_t dial1;
-    uint8_t dial2;
-    uint8_t switches; // bitflag
+    uint8_t aux1;
+   
 } __attribute__ ((__packed__)) nrf24Payload;
 
 nrf24Payload payload;
@@ -70,10 +69,8 @@ void resetPayload()
     payload.yaw = 128;
     payload.pitch = 128;
     payload.roll = 128;
-    payload.dial1 = 0;
-    payload.dial2 = 0;
-
-    payload.switches = 0;
+    payload.aux1 = 0;
+    
 }
 
 /****************************************************************************/
@@ -101,7 +98,7 @@ void startAsPrimaryReceiver()
 /****************************************************************************/
 
 // How many channels to provide to the flight controller?
-#define NRF24_CHANNEL_COUNT 14
+#define NRF24_CHANNEL_COUNT 5
 
 // Convert data in the payload to values usable by the flight controller.
 // The default implementation uses six bytes of the payload as analog controls,
@@ -115,18 +112,8 @@ void setRcDataFromPayload() {
     rcData[1] = 1000 + 1000 * payload.pitch     * scale;
     rcData[2] = 1000 + 1000 * payload.yaw       * scale;
     rcData[3] = 1000 + 1000 * payload.throttle  * scale;
-    rcData[4] = 1000 + 1000 * payload.dial1     * scale;
-    rcData[5] = 1000 + 1000 * payload.dial2     * scale;
-
-    // 8 'binary' (ie. switch) channels
-    rcData[ 6] = (payload.switches & (1 << 0)) ? 2000 : 1000;
-    rcData[ 7] = (payload.switches & (1 << 1)) ? 2000 : 1000;
-    rcData[ 8] = (payload.switches & (1 << 2)) ? 2000 : 1000;
-    rcData[ 9] = (payload.switches & (1 << 3)) ? 2000 : 1000;
-    rcData[10] = (payload.switches & (1 << 4)) ? 2000 : 1000;
-    rcData[11] = (payload.switches & (1 << 5)) ? 2000 : 1000;
-    rcData[12] = (payload.switches & (1 << 6)) ? 2000 : 1000;
-    rcData[13] = (payload.switches & (1 << 7)) ? 2000 : 1000;
+    rcData[4] = 1000 + 1000 * payload.aux1     * scale;
+    
 }
 
 /****************************************************************************/
