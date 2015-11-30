@@ -357,7 +357,10 @@ void updateRx(uint32_t currentTime)
 		if (rxDataReceived) {
 
 			//rxDataReceived = true;
+			rxSignalReceived = true;
 			needRxSignalBefore = currentTime + DELAY_5_HZ;
+			rxIsInFailsafeMode = false;
+			
 			
 			if (feature(FEATURE_FAILSAFE)) {
 				failsafeOnValidDataReceived();

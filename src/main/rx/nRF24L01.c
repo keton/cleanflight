@@ -100,21 +100,45 @@ void startAsPrimaryReceiver()
 // How many channels to provide to the flight controller?
 #define NRF24_CHANNEL_COUNT 5
 
-// Convert data in the payload to values usable by the flight controller.
-// The default implementation uses six bytes of the payload as analog controls,
-// and the last byte as a bitflag which allows for eight 2-position switches.
-void setRcDataFromPayload() {
+//callback that returns channel data to rx.c code for remaping and range adjustments
+//change this function if you want to change format in which data is sent from TX (ie. more channels, channel values as uint16_t,...)
+static uint16_t rxNRF24ReadRawRC(rxRuntimeConfig_t *rxRuntimeConfigPtr, uint8_t chan)
+{
+	UNUSED(rxRuntimeConfigPtr);
+	
+	uint16_t ret;
+	
+	const float scale = 1 / 255.0f;
 
-    float scale = 1 / 255.0f;
-
-    // 6 analog channels
-    rcData[0] = 1000 + 1000 * payload.roll      * scale;
-    rcData[1] = 1000 + 1000 * payload.pitch     * scale;
-    rcData[2] = 1000 + 1000 * payload.yaw       * scale;
-    rcData[3] = 1000 + 1000 * payload.throttle  * scale;
-    rcData[4] = 1000 + 1000 * payload.aux1     * scale;
-    
+	//cleanflight uses RPTYA+ channel order internally
+	switch (chan)
+	{
+	case 0: //roll
+		ret = 1000 + 1000 * payload.roll      * scale;
+		break;
+	case 1: //pitch
+		ret = 1000 + 1000 * payload.pitch      * scale;
+		break;
+	case 2: //throttle
+		ret = 1000 + 1000 * payload.throttle      * scale;
+		break;
+	case 3: //yaw
+		ret = 1000 + 1000 * payload.yaw      * scale;
+		break;
+	case 4: //aux1
+		ret = 1000 + 1000 * payload.aux1      * scale;
+		break;
+		
+	//add aux2+ and other chanels here
+	
+	default: //just in case
+		ret = 1500;
+		break;	
+	}
+		
+	return ret;
 }
+
 
 /****************************************************************************/
 
@@ -417,8 +441,11 @@ uint8_t nrf24_get_status(void)
 void rxNRF24Init(rxConfig_t *rxConfig, rxRuntimeConfig_t *rxRuntimeConfig, rcReadRawDataPtr *callback) {
 
     UNUSED(rxConfig);
-    UNUSED(callback);
+   
     rxRuntimeConfig->channelCount = NRF24_CHANNEL_COUNT;
+	//set callback that returns raw data from NRF24 payload to rx.c code
+	if (callback)
+		*callback = rxNRF24ReadRawRC;
 
     nrf24SoftSPIDevice.csn_port = GPIOA;
     nrf24SoftSPIDevice.csn_pin = GPIO_Pin_6;
@@ -518,7 +545,7 @@ bool rxNRF24ReceivePacket()
         resetPayload();
     }
 
-    setRcDataFromPayload();
+    //setRcDataFromPayload();
 
     return receivedPacket;
 }
