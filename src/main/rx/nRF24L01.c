@@ -9,6 +9,7 @@
 #include "drivers/bus_spi_soft.h"
 
 #include "rx.h"
+#include "io/rc_controls.h"
 
 #ifdef NRF24
 
@@ -100,6 +101,13 @@ void startAsPrimaryReceiver()
 // How many channels to provide to the flight controller?
 #define NRF24_CHANNEL_COUNT 5
 
+//scale 0-255 nRF24 payload values to 1000-2000 range expected by cleanflight
+static uint16_t scaleNRF24PayloadValue(uint8_t payloadValue)
+{
+	const float scale = 1 / 255.0f;
+	return 1000 + 1000 * payloadValue      * scale;
+}
+
 //callback that returns channel data to rx.c code for remaping and range adjustments
 //change this function if you want to change format in which data is sent from TX (ie. more channels, channel values as uint16_t,...)
 static uint16_t rxNRF24ReadRawRC(rxRuntimeConfig_t *rxRuntimeConfigPtr, uint8_t chan)
@@ -108,25 +116,25 @@ static uint16_t rxNRF24ReadRawRC(rxRuntimeConfig_t *rxRuntimeConfigPtr, uint8_t 
 	
 	uint16_t ret;
 	
-	const float scale = 1 / 255.0f;
-
-	//cleanflight uses RPTYA+ channel order internally
+	//cleanflight expects RPTYA+ channel order
 	switch (chan)
 	{
-	case 0: //roll
-		ret = 1000 + 1000 * payload.roll      * scale;
+	case ROLL: //roll
+		ret = scaleNRF24PayloadValue(payload.roll);
 		break;
-	case 1: //pitch
-		ret = 1000 + 1000 * payload.pitch      * scale;
+	case PITCH: //pitch
+		ret = scaleNRF24PayloadValue(payload.pitch);
 		break;
+	//THROTTLE connstant equals 3 in rc_controls.h enum
 	case 2: //throttle
-		ret = 1000 + 1000 * payload.throttle      * scale;
+		ret = scaleNRF24PayloadValue(payload.throttle);
 		break;
-	case 3: //yaw
-		ret = 1000 + 1000 * payload.yaw      * scale;
+	//YAW connstant equals 2 in rc_controls.h enum
+	case 3: //yaw 
+		ret = scaleNRF24PayloadValue(payload.yaw);
 		break;
-	case 4: //aux1
-		ret = 1000 + 1000 * payload.aux1      * scale;
+	case AUX1: //aux1
+		ret = scaleNRF24PayloadValue(payload.aux1);
 		break;
 		
 	//add aux2+ and other chanels here
@@ -535,18 +543,6 @@ bool rxNRF24ReceivePacket()
         receivedPacket = true;
     }
 
-    uint32_t now = millis();
-
-    if ( receivedPacket ) {
-        lastRecvTime = now;
-    }
-    else if ( now - lastRecvTime > NRF24_FAILSAFE_TIME_MS ) {
-        // signal lost?
-        resetPayload();
-    }
-
-    //setRcDataFromPayload();
-
     return receivedPacket;
 }
 
@@ -743,20 +739,6 @@ bool nrf24_available(void)
 {
     return nrf24_available_perPipe(0);
 }
-
-/****************************************************************************/
-
-/*uint8_t nRF24_DataReady(void) {
-    uint8_t status;
-
-    status = nRF24_ReadReg(NRF24_STATUS);
-    if (status & NRF24_MASK_RX_DR) return 1;
-
-    // Checking RX_DR isn't good enough, there's can be some data in FIFO
-    status = nRF24_ReadReg(NRF24_FIFO_STATUS);
-
-    return (status & NRF24_RX_EMPTY) ? 0 : 1;
-}*/
 
 /****************************************************************************/
 
