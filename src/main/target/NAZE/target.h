@@ -174,7 +174,7 @@
 #define LED_STRIP
 #define LED_STRIP_TIMER TIM3
 
-#define BLACKBOX
+//#define BLACKBOX
 #define TELEMETRY
 #define SERIAL_RX
 #define USE_SERVOS
@@ -182,6 +182,7 @@
 
 #define USE_SOFT_SPI
 #define NRF24
+#define GTUNE
 
 #define SPEKTRUM_BIND
 // USART2, PA3
