@@ -603,7 +603,7 @@ SIZE		 = arm-none-eabi-size
 #
 
 ifeq ($(DEBUG),GDB)
-OPTIMIZE	 = -O0
+OPTIMIZE	 = -Og
 LTO_FLAGS	 = $(OPTIMIZE)
 else
 OPTIMIZE	 = -Os
