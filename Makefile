@@ -20,9 +20,6 @@ TARGET		?= NAZE
 # Compile-time options
 OPTIONS		?=
 
-# compile for OpenPilot BootLoader support
-OPBL ?=no
-
 # Debugger optons, must be empty or GDB
 DEBUG ?=
 
@@ -38,18 +35,15 @@ FLASH_SIZE ?=
 
 FORKNAME			 = cleanflight
 
-VALID_TARGETS	 = NAZE NAZE32PRO OLIMEXINO STM32F3DISCOVERY CHEBUZZF3 CC3D CJMCU EUSTM32F103RC SPRACINGF3 PORT103R SPARKY ALIENWIIF1 ALIENWIIF3 COLIBRI_RACE
-
-# Valid targets for OP BootLoader support
-OPBL_VALID_TARGETS = CC3D
+VALID_TARGETS	 = ALIENWIIF1 ALIENWIIF3 CC3D CHEBUZZF3 CJMCU COLIBRI_RACE EUSTM32F103RC MOTOLAB NAZE NAZE32PRO OLIMEXINO PORT103R RMDO SPARKY SPRACINGF3 STM32F3DISCOVERY 
 
 # Configure default flash sizes for the targets
 ifeq ($(FLASH_SIZE),)
 ifeq ($(TARGET),$(filter $(TARGET),CJMCU))
 FLASH_SIZE = 64
-else ifeq ($(TARGET),$(filter $(TARGET),NAZE CC3D ALIENWIIF1 OLIMEXINO))
+else ifeq ($(TARGET),$(filter $(TARGET),ALIENWIIF1 CC3D NAZE OLIMEXINO RMDO))
 FLASH_SIZE = 128
-else ifeq ($(TARGET),$(filter $(TARGET),EUSTM32F103RC PORT103R STM32F3DISCOVERY CHEBUZZF3 NAZE32PRO SPRACINGF3 SPARKY ALIENWIIF3 COLIBRI_RACE))
+else ifeq ($(TARGET),$(filter $(TARGET),ALIENWIIF3 CHEBUZZF3 COLIBRI_RACE EUSTM32F103RC MOTOLAB NAZE32PRO PORT103R SPARKY SPRACINGF3 STM32F3DISCOVERY))
 FLASH_SIZE = 256
 else
 $(error FLASH_SIZE not configured for target)
@@ -74,7 +68,7 @@ USBPERIPH_SRC = $(notdir $(wildcard $(USBFS_DIR)/src/*.c))
 
 CSOURCES        := $(shell find $(SRC_DIR) -name '*.c')
 
-ifeq ($(TARGET),$(filter $(TARGET),STM32F3DISCOVERY CHEBUZZF3 NAZE32PRO SPRACINGF3 SPARKY ALIENWIIF3 COLIBRI_RACE))
+ifeq ($(TARGET),$(filter $(TARGET),ALIENWIIF3 CHEBUZZF3 COLIBRI_RACE MOTOLAB NAZE32PRO RMDO SPARKY SPRACINGF3 STM32F3DISCOVERY))
 
 STDPERIPH_DIR	= $(ROOT)/lib/main/STM32F30x_StdPeriph_Driver
 
@@ -118,6 +112,11 @@ TARGET_FLAGS = -D$(TARGET)
 ifeq ($(TARGET),CHEBUZZF3)
 # CHEBUZZ is a VARIANT of STM32F3DISCOVERY
 TARGET_FLAGS := $(TARGET_FLAGS) -DSTM32F3DISCOVERY
+endif
+
+ifeq ($(TARGET),RMDO)
+# RMDO is a VARIANT of SPRACINGF3
+TARGET_FLAGS := $(TARGET_FLAGS) -DSPRACINGF3
 endif
 
 else ifeq ($(TARGET),$(filter $(TARGET),EUSTM32F103RC PORT103R))
@@ -213,7 +212,7 @@ INCLUDE_DIRS := $(INCLUDE_DIRS) \
 
 VPATH		:= $(VPATH):$(TARGET_DIR)
 
-COMMON_SRC	 = build_config.c \
+COMMON_SRC = build_config.c \
 		   debug.c \
 		   version.c \
 		   $(TARGET_SRC) \
@@ -223,6 +222,7 @@ COMMON_SRC	 = build_config.c \
 		   common/printf.c \
 		   common/typeconversion.c \
 		   common/encoding.c \
+		   common/filter.c \
 		   main.c \
 		   mw.c \
 		   flight/altitudehold.c \
@@ -231,7 +231,6 @@ COMMON_SRC	 = build_config.c \
 		   flight/imu.c \
 		   flight/mixer.c \
 		   flight/lowpass.c \
-		   flight/filter.c \
 		   drivers/bus_i2c_soft.c \
            drivers/bus_spi_soft.c \
 		   drivers/serial.c \
@@ -241,6 +240,7 @@ COMMON_SRC	 = build_config.c \
 		   io/rc_controls.c \
 		   io/rc_curves.c \
 		   io/serial.c \
+		   io/serial_1wire.c \
 		   io/serial_cli.c \
 		   io/serial_msp.c \
 		   io/statusindicator.c \
@@ -262,7 +262,8 @@ COMMON_SRC	 = build_config.c \
 		   $(CMSIS_SRC) \
 		   $(DEVICE_STDPERIPH_SRC)
 
-HIGHEND_SRC  = flight/autotune.c \
+HIGHEND_SRC = \
+		   flight/gtune.c \
 		   flight/navigation.c \
 		   flight/gps_conversion.c \
 		   common/colorconversion.c \
@@ -279,7 +280,7 @@ HIGHEND_SRC  = flight/autotune.c \
 		   blackbox/blackbox.c \
 		   blackbox/blackbox_io.c
 
-VCP_SRC	 = \
+VCP_SRC = \
 		   vcp/hw_config.c \
 		   vcp/stm32_it.c \
 		   vcp/usb_desc.c \
@@ -289,18 +290,21 @@ VCP_SRC	 = \
 		   vcp/usb_pwr.c \
 		   drivers/serial_usb_vcp.c
 
-NAZE_SRC	 = startup_stm32f10x_md_gcc.S \
+NAZE_SRC = startup_stm32f10x_md_gcc.S \
 		   drivers/accgyro_adxl345.c \
 		   drivers/accgyro_bma280.c \
 		   drivers/accgyro_l3g4200d.c \
 		   drivers/accgyro_mma845x.c \
+		   drivers/accgyro_mpu.c \
 		   drivers/accgyro_mpu3050.c \
 		   drivers/accgyro_mpu6050.c \
+		   drivers/accgyro_mpu6500.c \
 		   drivers/accgyro_spi_mpu6500.c \
 		   drivers/adc.c \
 		   drivers/adc_stm32f10x.c \
 		   drivers/barometer_bmp085.c \
 		   drivers/barometer_ms5611.c \
+		   drivers/barometer_bmp280.c \
 		   drivers/bus_spi.c \
 		   drivers/bus_i2c_stm32f10x.c \
 		   drivers/compass_hmc5883l.c \
@@ -327,13 +331,14 @@ NAZE_SRC	 = startup_stm32f10x_md_gcc.S \
 		   $(HIGHEND_SRC) \
 		   $(COMMON_SRC)
 
-ALIENWIIF1_SRC	 = $(NAZE_SRC)
+ALIENWIIF1_SRC = $(NAZE_SRC)
 
-EUSTM32F103RC_SRC	 = startup_stm32f10x_hd_gcc.S \
+EUSTM32F103RC_SRC = startup_stm32f10x_hd_gcc.S \
 		   drivers/accgyro_adxl345.c \
 		   drivers/accgyro_bma280.c \
 		   drivers/accgyro_l3g4200d.c \
 		   drivers/accgyro_mma845x.c \
+		   drivers/accgyro_mpu.c \
 		   drivers/accgyro_mpu3050.c \
 		   drivers/accgyro_mpu6050.c \
 		   drivers/accgyro_spi_mpu6000.c \
@@ -370,7 +375,8 @@ EUSTM32F103RC_SRC	 = startup_stm32f10x_hd_gcc.S \
 
 PORT103R_SRC = $(EUSTM32F103RC_SRC)
 
-OLIMEXINO_SRC	 = startup_stm32f10x_md_gcc.S \
+OLIMEXINO_SRC = startup_stm32f10x_md_gcc.S \
+		   drivers/accgyro_mpu.c \
 		   drivers/accgyro_mpu6050.c \
 		   drivers/adc.c \
 		   drivers/adc_stm32f10x.c \
@@ -396,20 +402,11 @@ OLIMEXINO_SRC	 = startup_stm32f10x_md_gcc.S \
 		   $(HIGHEND_SRC) \
 		   $(COMMON_SRC)
 
-ifeq ($(OPBL),yes)
-ifneq ($(filter $(TARGET),$(OPBL_VALID_TARGETS)),)
-TARGET_FLAGS := -DOPBL $(TARGET_FLAGS)
-LD_SCRIPT	 = $(LINKER_DIR)/stm32_flash_f103_$(FLASH_SIZE)k_opbl.ld
-.DEFAULT_GOAL := binary
-else
-$(error OPBL specified with a unsupported target)
-endif
-endif
-
-CJMCU_SRC	 = \
+CJMCU_SRC = \
 		   startup_stm32f10x_md_gcc.S \
 		   drivers/adc.c \
 		   drivers/adc_stm32f10x.c \
+		   drivers/accgyro_mpu.c \
 		   drivers/accgyro_mpu6050.c \
 		   drivers/bus_i2c_stm32f10x.c \
 		   drivers/compass_hmc5883l.c \
@@ -425,12 +422,14 @@ CJMCU_SRC	 = \
 		   drivers/timer.c \
 		   drivers/timer_stm32f10x.c \
 		   hardware_revision.c \
+		   flight/gtune.c \
 		   blackbox/blackbox.c \
 		   blackbox/blackbox_io.c \
 		   $(COMMON_SRC)
 
-CC3D_SRC	 = \
+CC3D_SRC = \
 		   startup_stm32f10x_md_gcc.S \
+		   drivers/accgyro_mpu.c \
 		   drivers/accgyro_spi_mpu6000.c \
 		   drivers/adc.c \
 		   drivers/adc_stm32f10x.c \
@@ -462,7 +461,7 @@ CC3D_SRC	 = \
 		   $(COMMON_SRC) \
 		   $(VCP_SRC)
 
-STM32F30x_COMMON_SRC	 = \
+STM32F30x_COMMON_SRC = \
 		   startup_stm32f30x_md_gcc.S \
 		   drivers/adc.c \
 		   drivers/adc_stm32f30x.c \
@@ -482,13 +481,13 @@ STM32F30x_COMMON_SRC	 = \
 		   drivers/timer.c \
 		   drivers/timer_stm32f30x.c
 
-NAZE32PRO_SRC	 = \
+NAZE32PRO_SRC = \
 		   $(STM32F30x_COMMON_SRC) \
 		   $(HIGHEND_SRC) \
 		   $(COMMON_SRC) \
 		   $(VCP_SRC)
 
-STM32F3DISCOVERY_COMMON_SRC	 = \
+STM32F3DISCOVERY_COMMON_SRC = \
 		   $(STM32F30x_COMMON_SRC) \
 		   drivers/accgyro_l3gd20.c \
 		   drivers/accgyro_l3gd20.c \
@@ -496,11 +495,12 @@ STM32F3DISCOVERY_COMMON_SRC	 = \
 		   drivers/compass_hmc5883l.c \
 		   $(VCP_SRC)
 
-STM32F3DISCOVERY_SRC	 = \
+STM32F3DISCOVERY_SRC = \
 		   $(STM32F3DISCOVERY_COMMON_SRC) \
 		   drivers/accgyro_adxl345.c \
 		   drivers/accgyro_bma280.c \
 		   drivers/accgyro_mma845x.c \
+		   drivers/accgyro_mpu.c \
 		   drivers/accgyro_mpu3050.c \
 		   drivers/accgyro_mpu6050.c \
 		   drivers/accgyro_l3g4200d.c \
@@ -509,15 +509,18 @@ STM32F3DISCOVERY_SRC	 = \
 		   $(HIGHEND_SRC) \
 		   $(COMMON_SRC)
 
-CHEBUZZF3_SRC	 = \
+CHEBUZZF3_SRC = \
 		   $(STM32F3DISCOVERY_SRC) \
 		   $(HIGHEND_SRC) \
 		   $(COMMON_SRC)
 
-COLIBRI_RACE_SRC        = \
+COLIBRI_RACE_SRC = \
 		   $(STM32F30x_COMMON_SRC) \
 		   drivers/display_ug2864hsweg01.c \
+		   drivers/accgyro_mpu.c \
+		   drivers/accgyro_mpu6500.c \
 		   drivers/accgyro_spi_mpu6500.c \
+		   drivers/accgyro_mpu6500.c \
 		   drivers/barometer_ms5611.c \
 		   drivers/compass_ak8975.c \
 		   drivers/compass_hmc5883l.c \
@@ -526,9 +529,10 @@ COLIBRI_RACE_SRC        = \
 		   $(COMMON_SRC) \
 		   $(VCP_SRC)
 
-SPARKY_SRC	 = \
+SPARKY_SRC = \
 		   $(STM32F30x_COMMON_SRC) \
 		   drivers/display_ug2864hsweg01.c \
+		   drivers/accgyro_mpu.c \
 		   drivers/accgyro_mpu6050.c \
 		   drivers/barometer_ms5611.c \
 		   drivers/compass_ak8975.c \
@@ -537,10 +541,25 @@ SPARKY_SRC	 = \
 		   $(COMMON_SRC) \
 		   $(VCP_SRC)
 
-ALIENWIIF3_SRC	 = $(SPARKY_SRC)
+ALIENWIIF3_SRC = \
+		   $(SPARKY_SRC)
 
-SPRACINGF3_SRC	 = \
+RMDO_SRC = \
 		   $(STM32F30x_COMMON_SRC) \
+		   drivers/accgyro_mpu.c \
+		   drivers/accgyro_mpu6050.c \
+		   drivers/barometer_bmp280.c \
+		   drivers/display_ug2864hsweg01.h \
+		   drivers/flash_m25p16.c \
+		   drivers/serial_softserial.c \
+		   drivers/sonar_hcsr04.c \
+		   io/flashfs.c \
+		   $(HIGHEND_SRC) \
+		   $(COMMON_SRC)
+
+SPRACINGF3_SRC = \
+		   $(STM32F30x_COMMON_SRC) \
+		   drivers/accgyro_mpu.c \
 		   drivers/accgyro_mpu6050.c \
 		   drivers/barometer_ms5611.c \
 		   drivers/compass_ak8975.c \
@@ -552,6 +571,20 @@ SPRACINGF3_SRC	 = \
 		   io/flashfs.c \
 		   $(HIGHEND_SRC) \
 		   $(COMMON_SRC)
+
+MOTOLAB_SRC = \
+		   $(STM32F30x_COMMON_SRC) \
+		   drivers/accgyro_mpu.c \
+		   drivers/accgyro_mpu6050.c \
+		   drivers/barometer_ms5611.c \
+		   drivers/compass_hmc5883l.c \
+		   drivers/display_ug2864hsweg01.c \
+		   drivers/serial_usb_vcp.c \
+		   drivers/flash_m25p16.c \
+		   io/flashfs.c \
+		   $(HIGHEND_SRC) \
+		   $(COMMON_SRC) \
+		   $(VCP_SRC)
 
 # Search path and source files for the ST stdperiph library
 VPATH		:= $(VPATH):$(STDPERIPH_DIR)/src

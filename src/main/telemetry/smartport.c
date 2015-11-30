@@ -160,7 +160,7 @@ static void smartPortDataReceive(uint16_t c)
     static uint8_t lastChar;
     if (lastChar == FSSP_START_STOP) {
         smartPortState = SPSTATE_WORKING;
-        if (c == FSSP_SENSOR_ID1 && (serialTotalBytesWaiting(smartPortSerialPort) == 0)) {
+        if (c == FSSP_SENSOR_ID1 && (serialRxBytesWaiting(smartPortSerialPort) == 0)) {
             smartPortLastRequestTime = now;
             smartPortHasRequest = 1;
             // we only responde to these IDs
@@ -282,7 +282,7 @@ void handleSmartPortTelemetry(void)
         return;
     }
 
-    while (serialTotalBytesWaiting(smartPortSerialPort) > 0) {
+    while (serialRxBytesWaiting(smartPortSerialPort) > 0) {
         uint8_t c = serialRead(smartPortSerialPort);
         smartPortDataReceive(c);
     }
@@ -421,7 +421,7 @@ void handleSmartPortTelemetry(void)
                     tmpi += 10;
                 if (FLIGHT_MODE(HORIZON_MODE))
                     tmpi += 20;
-                if (FLIGHT_MODE(AUTOTUNE_MODE))
+                if (FLIGHT_MODE(UNUSED_MODE))
                     tmpi += 40;
                 if (FLIGHT_MODE(PASSTHRU_MODE))
                     tmpi += 40;
